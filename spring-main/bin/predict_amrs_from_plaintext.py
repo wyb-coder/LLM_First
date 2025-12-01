@@ -3,6 +3,7 @@ from pathlib import Path
 import ast
 import csv
 import multiprocessing as mp
+import os
 import sys
 import traceback
 from typing import Dict, List, Optional, Set, Tuple
@@ -25,6 +26,7 @@ DATA_TEMP_DIR_NAME = 'temp'
 META_FIELDNAMES = ['review_id', 'sentence_id', 'sentence', 'amr']
 SEPARATOR_LINE = "===============================开始推理==============================="
 DEFAULT_MAX_SENT_LENGTH = 100
+AMR_NONE_TOKEN = 'AMR-None'
 
 
 class ContinueValidationError(RuntimeError):
@@ -77,11 +79,15 @@ def load_meta_rows(meta_path: Path) -> Optional[List[Dict[str, str]]]:
 
 def write_meta_rows(meta_path: Path, rows: List[Dict[str, str]]) -> None:
     meta_path.parent.mkdir(parents=True, exist_ok=True)
-    with meta_path.open('w', encoding='utf-8', newline='') as handle:
+    tmp_path = meta_path.with_suffix(f"{meta_path.suffix}.tmp")
+    with tmp_path.open('w', encoding='utf-8', newline='') as handle:
         writer = csv.DictWriter(handle, fieldnames=META_FIELDNAMES)
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, '') for field in META_FIELDNAMES})
+        handle.flush()
+        os.fsync(handle.fileno())
+    tmp_path.replace(meta_path)
 
 
 def write_amr_from_meta(meta_rows: List[Dict[str, str]], output_path: Path) -> None:
@@ -89,7 +95,7 @@ def write_amr_from_meta(meta_rows: List[Dict[str, str]], output_path: Path) -> N
     with output_path.open('w', encoding='utf-8') as handle:
         for row in meta_rows:
             amr_txt = (row.get('amr') or '').strip()
-            if not amr_txt:
+            if not amr_txt or amr_txt == AMR_NONE_TOKEN:
                 continue
             handle.write(amr_txt)
             if not amr_txt.endswith('\n'):
@@ -398,32 +404,35 @@ def run_prediction_tasks(tasks, config, device_str, print_amr=True, show_progres
                     model.amr_mode = True
                     out = model.generate(**x, max_length=512, decoder_start_token_id=0, num_beams=config['beam_size'])
 
-                bgraphs = []
-                for idx, sent, tokk in zip(ids, sentences, out):
-                    graph, status, (lin, backr) = tokenizer.decode_amr(
-                        tokk.tolist(),
-                        restore_name_ops=config['restore_name_ops'],
-                    )
-                    if config['only_ok'] and ('OK' not in str(status)):
-                        continue
-                    graph.metadata['status'] = str(status)
-                    graph.metadata['source'] = str(input_path)
-                    graph.metadata['nsent'] = str(idx)
-                    graph.metadata['snt'] = sent
-                    bgraphs.append((idx, graph))
+                for idx_value, sent, tokk in zip(ids, sentences, out):
+                    amr_value: Optional[str] = None
+                    try:
+                        graph, status, (_lin, _backr) = tokenizer.decode_amr(
+                            tokk.tolist(),
+                            restore_name_ops=config['restore_name_ops'],
+                        )
+                        status_str = str(status)
+                        if config['only_ok'] and ('OK' not in status_str):
+                            amr_value = AMR_NONE_TOKEN
+                        else:
+                            graph.metadata['status'] = status_str
+                            graph.metadata['source'] = str(input_path)
+                            graph.metadata['nsent'] = str(idx_value)
+                            graph.metadata['snt'] = sent
+                            encoded_graph = encode(graph)
+                            if print_amr:
+                                print(encoded_graph)
+                                print()
+                            output_stream.write(encoded_graph)
+                            output_stream.write('\n\n')
+                            amr_value = encoded_graph
+                    except Exception as exc:  # pragma: no cover - defensive
+                        print(f"WARNING: decode failed for {input_path} idx {idx_value}: {exc}")
+                        amr_value = AMR_NONE_TOKEN
 
-                batch_meta_updated = False
-                for idx_value, graph in bgraphs:
-                    encoded_graph = encode(graph)
-                    if print_amr:
-                        print(encoded_graph)
-                        print()
-                    output_stream.write(encoded_graph)
-                    output_stream.write('\n\n')
                     if meta_rows is not None and 0 <= idx_value < len(meta_rows):
-                        meta_rows[idx_value]['amr'] = encoded_graph
+                        meta_rows[idx_value]['amr'] = amr_value or AMR_NONE_TOKEN
                         meta_changed = True
-                        batch_meta_updated = True
                         if meta_path:
                             write_meta_rows(meta_path, meta_rows)
 
@@ -431,8 +440,6 @@ def run_prediction_tasks(tasks, config, device_str, print_amr=True, show_progres
                     progress_callback(len(sentences))
                 if bar:
                     bar.update(len(sentences))
-                if batch_meta_updated and meta_rows is not None and meta_path:
-                    write_meta_rows(meta_path, meta_rows)
 
         if bar:
             bar.close()
