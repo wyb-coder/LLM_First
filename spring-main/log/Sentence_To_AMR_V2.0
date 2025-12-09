@@ -1,0 +1,315 @@
+[?2004h(spring) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/spring-main]$ls
+[?2004lbin  checkpoints  configs  data  facebook  __init__.py	log  model  outputs  result  setup.py  sjx  spring_amr
+[?2004h(spring) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/spring-main]$ls ;[Klog/
+[?2004lDataPrepare.0  Sentence_To_AMR.0  Sentence_To_AMR_V2.0
+[?2004h(spring) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/spring-main]$python bin/predict_amrs_from_plaintext.py \
+[?2004l[?2004h>     --texts data/yelp_review_polarity_csv/train.sent.txt \
+[?2004l[?2004h>     --maps data/yelp_review_polarity_csv/train.sent.txt.map.tsv \
+[?2004l[?2004h>     --checkpoint checkpoints/AMR2.parsing.pt \
+[?2004l[?2004h>     --beam-size 1 \
+[?2004l[?2004h>     --batch-size 1 \
+[?2004l[?2004h>     --device cuda \
+[?2004l[?2004h>     --penman-linearization \
+[?2004l[?2004h>     --use-pointer-tokens \
+[?2004l[?2004h>     --shard-open "[12, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7]" \
+[?2004l[?2004h>     --continue True
+[?2004l[34m[1mwandb[0m: [33mWARNING[0m W&B installed but not logged in.  Run `wandb login` or set the WANDB_API_KEY env variable.
+===============================开始推理===============================
+继续模式检测成功：train.sent.txt 分片 12 份，剩余 2562 句待推理
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+facebook/bart-large
+Shard1:GPU4:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s]
+Shard2:GPU4:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A
+
+Shard3:GPU4:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A[A
+
+
+Shard4:GPU5:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A[A[A
+
+
+
+Shard5:GPU5:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A[A[A[A
+
+
+
+
+Shard6:GPU5:   0%|                                                                                                    | 0/54 [00:00<?, ?it/s][A[A[A[A[A
+
+
+
+
+
+Shard7:GPU6:   0%|                                                                                                    | 0/16 [00:00<?, ?it/s][A[A[A[A[A[A
+
+
+
+
+
+
+Shard8:GPU6:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A[A[A[A[A[A[A
+
+
+
+
+
+
+
+Shard9:GPU6:   0%|                                                                                                     | 0/1 [00:00<?, ?it/s][A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+Shard10:GPU7:   0%|                                                                                                    | 0/1 [00:00<?, ?it/s][A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+Shard11:GPU7:   0%|                                                                                                 | 0/2492 [00:00<?, ?it/s][A[A[A[A[A[A[A[A[A[Afacebook/bart-large
+
+
+
+
+
+
+
+
+
+
+
+Shard12:GPU7:   0%|                                                                                                    | 0/1 [00:00<?, ?it/s][A[A[A[A[A[A[A[A[A[A[Atrain.sent12.txt: 继续模式跳过 67409 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent12.txt.csv unchanged (no AMRs assigned)
+Shard12:GPU7: 100%|████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:02<00:00, 62.61s/it]
+train.sent7.txt: 继续模式跳过 67393 条已完成句子
+train.sent10.txt: 继续模式跳过 67409 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent10.txt.csv unchanged (no AMRs assigned)
+train.sent6.txt: 继续模式跳过 67355 条已完成句子
+train.sent5.txt: 继续模式跳过 67409 条已完成句子
+train.sent2.txt: 继续模式跳过 67410 条已完成句子
+train.sent11.txt: 继续模式跳过 64917 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent5.txt.csv unchanged (no AMRs assigned)
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent2.txt.csv unchanged (no AMRs assigned)
+train.sent4.txt: 继续模式跳过 67409 条已完成句子
+train.sent8.txt: 继续模式跳过 67409 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent4.txt.csv unchanged (no AMRs assigned)
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent8.txt.csv unchanged (no AMRs assigned)
+train.sent1.txt: 继续模式跳过 67410 条已完成句子
+train.sent3.txt: 继续模式跳过 67409 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent1.txt.csv unchanged (no AMRs assigned)
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent3.txt.csv unchanged (no AMRs assigned)
+train.sent9.txt: 继续模式跳过 67409 条已完成句子
+NOTE: meta file /home/NCUT/22/sjx/shared/wyb/spring-main/result/temp/train.sent/train.sent9.txt.csv unchanged (no AMRs assigned)
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [32,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [33,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [34,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [35,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [36,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [37,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [38,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [39,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [40,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [41,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [42,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [43,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [44,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [45,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [46,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [47,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [48,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [49,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [50,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [51,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [52,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [53,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [54,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [55,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [56,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [57,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [58,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [59,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [60,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [61,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [62,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [219,0,0], thread: [63,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [0,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [1,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [2,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [3,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [4,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [5,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [6,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [7,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [8,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [9,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [10,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [11,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [12,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [13,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [14,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [15,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [16,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [17,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [18,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [19,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [20,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [21,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [22,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [23,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [24,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [25,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [26,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [27,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [28,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [29,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [30,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1141: indexSelectLargeIndex: block: [327,0,0], thread: [31,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+
+
+
+
+
+
+
+
+
+
+Shard11:GPU7: 100%|██████████████████████████████████████████████████████████████████████████████████████| 2492/2492 [01:05<00:00, 37.85it/s][A[A[A[A[A[A[A[A[A[AShard11:GPU7: 100%|██████████████████████████████████████████████████████████████████████████████████████| 2492/2492 [01:05<00:00, 37.85it/s]
+Shard10:GPU7: 100%|████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:06<00:00, 66.64s/it]
+Shard5:GPU5: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:06<00:00, 66.99s/it]
+Shard2:GPU4: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:06<00:00, 66.99s/it]
+Shard4:GPU5: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:07<00:00, 67.23s/it]
+Shard8:GPU6: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:07<00:00, 67.31s/it]
+Shard1:GPU4: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:07<00:00, 67.40s/it]
+Shard3:GPU4: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:07<00:00, 67.51s/it]
+Shard9:GPU6: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:07<00:00, 67.56s/it]
+
+
+
+
+
+Shard6:GPU5:   2%|█▋                                                                                        | 1/54 [01:09<1:01:05, 69.15s/it][A[A[A[A[A
+
+
+
+
+
+Shard7:GPU6:   6%|█████▊                                                                                      | 1/16 [01:09<17:17, 69.17s/it][A[A[A[A[A[A
+
+
+
+
+Shard6:GPU5: 100%|███████████████████████████████████████████████████████████████████████████████████████████| 54/54 [01:09<00:00,  1.10it/s][A[A[A[A[AShard6:GPU5: 100%|███████████████████████████████████████████████████████████████████████████████████████████| 54/54 [01:09<00:00,  1.29s/it]
+
+
+
+
+
+
+Shard7:GPU6:  12%|███████████▌                                                                                | 2/16 [01:12<07:02, 30.17s/it][A[A[A[A[A[A
+
+
+
+
+
+Shard7:GPU6: 100%|███████████████████████████████████████████████████████████████████████████████████████████| 16/16 [01:12<00:00,  2.40s/it][A[A[A[A[A[AShard7:GPU6: 100%|███████████████████████████████████████████████████████████████████████████████████████████| 16/16 [01:12<00:00,  4.53s/it]
+Traceback (most recent call last):
+  File "bin/predict_amrs_from_plaintext.py", line 701, in <module>
+    main()
+  File "bin/predict_amrs_from_plaintext.py", line 663, in main
+    orchestrate_shards(args, shard_config, map_paths)
+  File "bin/predict_amrs_from_plaintext.py", line 616, in orchestrate_shards
+    raise RuntimeError(msgs)
+RuntimeError: Shard 11 failed:
+Traceback (most recent call last):
+  File "bin/predict_amrs_from_plaintext.py", line 469, in shard_worker
+    progress_callback=_progress,
+  File "bin/predict_amrs_from_plaintext.py", line 405, in run_prediction_tasks
+    out = model.generate(**x, max_length=512, decoder_start_token_id=0, num_beams=config['beam_size'])
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 841, in generate
+    encoder_outputs: tuple = encoder(input_ids, attention_mask=attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 113, in forward
+    x, attn = encoder_layer(x, attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/transformers/modeling_bart.py", line 214, in forward
+    query=x, key=x, key_padding_mask=encoder_padding_mask, need_weights=self.output_attentions
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/transformers/modeling_bart.py", line 603, in forward
+    q = self.q_proj(query) * self.scaling
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: CUDA error: CUBLAS_STATUS_NOT_INITIALIZED when calling `cublasCreate(handle)`
+
+Shard 6 failed:
+Traceback (most recent call last):
+  File "bin/predict_amrs_from_plaintext.py", line 469, in shard_worker
+    progress_callback=_progress,
+  File "bin/predict_amrs_from_plaintext.py", line 405, in run_prediction_tasks
+    out = model.generate(**x, max_length=512, decoder_start_token_id=0, num_beams=config['beam_size'])
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 841, in generate
+    encoder_outputs: tuple = encoder(input_ids, attention_mask=attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 113, in forward
+    x, attn = encoder_layer(x, attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/transformers/modeling_bart.py", line 226, in forward
+    x = self.fc2(x)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: CUDA error: CUBLAS_STATUS_EXECUTION_FAILED when calling `cublasLtMatmul( ltHandle, computeDesc.descriptor(), &alpha_val, mat1_ptr, Adesc.descriptor(), mat2_ptr, Bdesc.descriptor(), &beta_val, result_ptr, Cdesc.descriptor(), result_ptr, Cdesc.descriptor(), &heuristicResult.algo, workspace.data_ptr(), workspaceSize, at::cuda::getCurrentCUDAStream())`
+
+Shard 7 failed:
+Traceback (most recent call last):
+  File "bin/predict_amrs_from_plaintext.py", line 469, in shard_worker
+    progress_callback=_progress,
+  File "bin/predict_amrs_from_plaintext.py", line 405, in run_prediction_tasks
+    out = model.generate(**x, max_length=512, decoder_start_token_id=0, num_beams=config['beam_size'])
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 841, in generate
+    encoder_outputs: tuple = encoder(input_ids, attention_mask=attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/spring-main/spring_amr/modeling_bart.py", line 113, in forward
+    x, attn = encoder_layer(x, attention_mask)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/transformers/modeling_bart.py", line 224, in forward
+    x = self.activation_fn(self.fc1(x))
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/NCUT/22/sjx/.conda/envs/spring/lib/python3.7/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: CUDA error: CUBLAS_STATUS_EXECUTION_FAILED when calling `cublasLtMatmul( ltHandle, computeDesc.descriptor(), &alpha_val, mat1_ptr, Adesc.descriptor(), mat2_ptr, Bdesc.descriptor(), &beta_val, result_ptr, Cdesc.descriptor(), result_ptr, Cdesc.descriptor(), &heuristicResult.algo, workspace.data_ptr(), workspaceSize, at::cuda::getCurrentCUDAStream())`
+
+[?2004h(spring) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/spring-main]$

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import ast
 import bz2
 import csv
 import gzip
@@ -10,7 +9,7 @@ import lzma
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Set, TextIO, Tuple, Union
+from typing import Dict, Iterable, Iterator, List, Optional, TextIO, Tuple, Union
 
 import penman
 from tqdm import tqdm
@@ -22,14 +21,12 @@ from formatting import extract_triplets
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_AMR_PATH = PROJECT_ROOT / 'result' / 'train.sent.txt.amr'
-DEFAULT_INPUT_CSV_PATH = PROJECT_ROOT / 'result' / 'train.sent.txt.csv'
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / 'outputs' / 'train_amr_triples.csv'
 COMPRESSION_SUFFIX_MAP = {
     '.gz': 'gzip',
     '.bz2': 'bz2',
     '.xz': 'xz',
 }
-AMR_NONE_TOKEN = 'AMR-None'
 
 
 def detect_compression(path: Union[Path, str], option: str) -> str:
@@ -112,34 +109,13 @@ def iter_amr_entries(path: Path) -> Iterable[Tuple[Dict[str, str], str]]:
         yield metadata, '\n'.join(graph_lines)
 
 
-def build_relationship_strings(
-    graph: penman.Graph,
-    allowed_arg_roles: Set[str],
-    extra_roles: Set[str],
-) -> List[str]:
+def build_relationship_strings(graph: penman.Graph) -> List[str]:
     relationships: List[str] = []
     for triple in graph.edges():
         role = triple.role.lstrip(':')
-        is_inverse = role.endswith('-of')
-        base_role = role[:-3] if is_inverse else role
-        base_role_upper = base_role.upper()
-        base_role_lower = base_role.lower()
-
-        include = False
-        normalized_role = base_role
-        if base_role_upper.startswith('ARG') and base_role_upper in allowed_arg_roles:
-            include = True
-            normalized_role = base_role_upper
-        elif base_role_lower in extra_roles:
-            include = True
-            normalized_role = base_role_lower
-
-        if not include:
+        if role not in {'ARG0', 'ARG1'}:
             continue
-
-        source = triple.target if is_inverse else triple.source
-        target = triple.source if is_inverse else triple.target
-        relationships.append(f"{normalized_role}({source}, {target}) ^")
+        relationships.append(f"{role}({triple.source}, {triple.target}) ^")
     return relationships
 
 
@@ -156,33 +132,15 @@ def triples_to_tokens(triples: List[List[str]], id_to_concept: Dict[str, str]) -
     return results
 
 
-def compute_triples_from_text(
-    amr_text: str,
-    allowed_arg_roles: Set[str],
-    extra_roles: Set[str],
-) -> List[str]:
-    graph = penman.decode(amr_text)
-    id_to_concept: Dict[str, str] = {}
-    for node, _, concept in graph.instances():
-        id_to_concept[node] = normalize_concept(concept)
-    relationships = build_relationship_strings(graph, allowed_arg_roles, extra_roles)
-    triples_id = extract_triplets(relationships)
-    return triples_to_tokens(triples_id, id_to_concept)
-
-
 def amr_to_instance(
     amr_file: Path,
     output_csv: Path,
     show_progress: bool = True,
     include_amr: bool = True,
     compression: str = 'infer',
-    allowed_arg_roles: Optional[Set[str]] = None,
-    extra_roles: Optional[Set[str]] = None,
 ) -> None:
     if not amr_file.exists():
         raise FileNotFoundError(f"AMR文件不存在: {amr_file}")
-    allowed_arg_roles = allowed_arg_roles or {'ARG0', 'ARG1'}
-    extra_roles = {role.lower() for role in (extra_roles or set())}
     dedup: Dict[Tuple[str, object], Dict[str, object]] = {}
     order_counter = 0
     iterator: Iterable[Tuple[Dict[str, str], str]] = iter_amr_entries(amr_file)
@@ -202,10 +160,16 @@ def amr_to_instance(
         status = metadata.get('status', '')
         source = metadata.get('source', '')
         try:
-            triples_text = compute_triples_from_text(graph_text, allowed_arg_roles, extra_roles)
+            graph = penman.decode(graph_text)
         except Exception as exc:  # pragma: no cover - robust parsing
             print(f"跳过nsent={nsent_val}的AMR，解码失败：{exc}", file=sys.stderr)
             continue
+        id_to_concept: Dict[str, str] = {}
+        for node, _, concept in graph.instances():
+            id_to_concept[node] = normalize_concept(concept)
+        relationships = build_relationship_strings(graph)
+        triples_id = extract_triplets(relationships)
+        triples_text = triples_to_tokens(triples_id, id_to_concept)
         record: Dict[str, object] = {
             'nsent': nsent_val,
             'sentence': sentence,
@@ -252,87 +216,8 @@ def amr_to_instance(
     print(f"已写入 {len(sorted_rows)} 条句子及三元组到 {target_desc}")
 
 
-def augment_csv_with_triples(
-    input_csv: Path,
-    output_csv: Path,
-    show_progress: bool,
-    compression: str,
-    allowed_arg_roles: Set[str],
-    extra_roles: Set[str],
-) -> None:
-    if not input_csv.exists():
-        raise FileNotFoundError(f"找不到输入CSV: {input_csv}")
-    with input_csv.open('r', encoding='utf-8', newline='') as in_handle:
-        reader = csv.DictReader(in_handle)
-        if not reader.fieldnames:
-            raise ValueError(f"CSV {input_csv} 缺少表头，无法解析")
-        if 'amr' not in reader.fieldnames:
-            raise ValueError(f"CSV {input_csv} 缺少 'amr' 列，无法提取三元组")
-        fieldnames = list(reader.fieldnames)
-        if 'triples' not in fieldnames:
-            fieldnames.append('triples')
-
-        iterator: Iterable[Dict[str, str]] = reader
-        if show_progress:
-            iterator = tqdm(iterator, desc='Processing CSV', unit='row', dynamic_ncols=True)
-
-        processed = 0
-        with smart_open(output_csv, compression) as out_handle:
-            writer = csv.DictWriter(out_handle, fieldnames=fieldnames, extrasaction='ignore')
-            writer.writeheader()
-            for row in iterator:
-                amr_text = (row.get('amr') or '').strip()
-                triples_text: List[str] = []
-                if amr_text and amr_text != AMR_NONE_TOKEN:
-                    try:
-                        triples_text = compute_triples_from_text(amr_text, allowed_arg_roles, extra_roles)
-                    except Exception as exc:  # pragma: no cover - robust parsing
-                        print(f"WARNING: 无法解析 AMR（sentence_id={row.get('sentence_id','?')}）: {exc}", file=sys.stderr)
-                row['triples'] = json.dumps(triples_text, ensure_ascii=False)
-                writer.writerow({field: row.get(field, '') for field in fieldnames})
-                processed += 1
-
-    target_desc = 'stdout' if str(output_csv) == '-' else output_csv
-    print(f"已处理 {processed} 行，结果写入 {target_desc}")
-
-
-def parse_arg_roles(expr: str) -> Set[str]:
-    if not expr:
-        return {'ARG0', 'ARG1'}
-    try:
-        values = ast.literal_eval(expr)
-    except Exception as exc:  # pragma: no cover - defensive
-        raise ValueError(f"无法解析 --roles：{expr}") from exc
-    if not isinstance(values, (list, tuple, set)):
-        raise ValueError("--roles 需要由整数列表组成，如 [0,1,2]")
-    result: Set[str] = set()
-    for item in values:
-        try:
-            idx = int(item)
-        except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
-            raise ValueError("--roles 中只能包含整数") from exc
-        if idx < 0:
-            raise ValueError("--roles 中的索引必须为非负整数")
-        result.add(f"ARG{idx}")
-    if not result:
-        raise ValueError("--roles 至少需要一个值")
-    return result
-
-
-def parse_extra_roles(expr: str) -> Set[str]:
-    if not expr:
-        return set()
-    roles = {token.strip().lower() for token in expr.replace(',', ' ').split() if token.strip()}
-    return roles
-
-
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='将AMR文件转换为句子-三元组CSV')
-    parser.add_argument(
-        '--input-csv',
-        type=Path,
-        help=f'直接读取聚合后的CSV（例如 {DEFAULT_INPUT_CSV_PATH}），并在原列基础上新增triples列',
-    )
     parser.add_argument(
         '--amr-file',
         type=Path,
@@ -361,48 +246,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default='infer',
         help='输出压缩格式，infer 会根据文件扩展名自动判定（.gz/.bz2/.xz）。',
     )
-    parser.add_argument(
-        '--roles',
-        type=str,
-        default='[0,1]',
-        help='需要保留的 ARG 角色索引列表，格式如 [0,1,2]，默认仅保留 ARG0/ARG1。',
-    )
-    parser.add_argument(
-        '--extra-roles',
-        type=str,
-        default='mod,manner,cause,time,location',
-        help='额外保留的语义角色（逗号/空格分隔），默认包含 mod/manner/cause/time/location。',
-    )
     return parser
 
 
 def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
-    try:
-        allowed_arg_roles = parse_arg_roles(args.roles)
-    except ValueError as exc:
-        parser.error(str(exc))
-    extra_roles = parse_extra_roles(args.extra_roles)
-    if args.input_csv:
-        augment_csv_with_triples(
-            args.input_csv,
-            args.output,
-            show_progress=not args.no_progress,
-            compression=args.compression,
-            allowed_arg_roles=allowed_arg_roles,
-            extra_roles=extra_roles,
-        )
-    else:
-        amr_to_instance(
-            args.amr_file,
-            args.output,
-            show_progress=not args.no_progress,
-            include_amr=not args.omit_amr,
-            compression=args.compression,
-            allowed_arg_roles=allowed_arg_roles,
-            extra_roles=extra_roles,
-        )
+    amr_to_instance(
+        args.amr_file,
+        args.output,
+        show_progress=not args.no_progress,
+        include_amr=not args.omit_amr,
+        compression=args.compression,
+    )
 
 
 if __name__ == '__main__':
