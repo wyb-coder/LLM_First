@@ -159,3 +159,5 @@ coverage/
 *labels*
 
 */facebook/*
+
+!*.pdf
