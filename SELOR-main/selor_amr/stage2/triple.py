@@ -1,5 +1,20 @@
 """Triple data structures for AMR-SELOR (stage2 scope).
 
+【溯源说明】
+改造自：selor_utils/atom.py（原 SELOR 原子数据结构）
+原文件职能：
+  - 定义 Atom 类（词汇原子，如 "word >= threshold"）
+  - 定义 AtomPool（样本级原子池）、AtomTokenizer（全局原子词表构建）
+  - 提供原子匹配、过滤、序列化等工具函数
+本文件职能：
+  - 定义 Triple 类（语义三元组，如 (staff, :ARG0, help-01)）
+  - 定义 TriplePool（样本级三元组池）
+  - 定义 GlobalTripleVocab（全局三元组词表，按频率排序）
+核心改造：
+  - 原子单元：布尔表达式 → 语义三元组 (head, relation, tail)
+  - 表示方式：字符串匹配 → 结构化三元组（支持文本编码或查表）
+  - 池管理：固定全局 → 动态按样本（每个样本独立三元组集合）
+
 - Triple: basic unit
 - TriplePool: per-sample pool
 - GlobalTripleVocab: frequency-ordered vocab builder

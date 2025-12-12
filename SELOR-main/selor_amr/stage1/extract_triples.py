@@ -1,5 +1,20 @@
 """Extract triples from CSV files.
 
+【溯源说明】
+改造自：build_atom_pool.py（原 SELOR 词汇原子池构建脚本）
+原文件职能：
+  - 从训练集统计词频，构建全局词汇原子池（AtomTokenizer）
+  - 生成布尔满足向量 x_（样本满足哪些词汇原子）
+  - 输出固定原子池和 true_matrix（原子-样本关系矩阵）
+本文件职能：
+  - 从 AMR 图或预提取的三元组列解析语义三元组（替代词汇原子）
+  - 支持两种输入模式：AMR PENMAN 格式或 CSV 列中的三元组列表
+  - 生成每个划分的三元组列表和全局三元组词表（按频率排序）
+核心改造：
+  - 原子定义：词汇 → 语义三元组 (head, relation, tail)
+  - 来源：词频统计 → AMR 解析 + 关系过滤
+  - 输出：固定原子池 → 动态三元组集合（每样本独立）
+
 Two modes:
 - AMR string column decoded with penman.
 - Pre-extracted triple-list column (e.g., last column in *_with_amr.csv).

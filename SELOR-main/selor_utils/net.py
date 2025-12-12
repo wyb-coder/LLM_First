@@ -114,6 +114,7 @@ class BaseModel(nn.Module):
 
         return out, h, _
 
+# [AMR-SELOR][2025-12-11] Added TripleConsequentEstimator for triple embeddings (dynamic candidates)
 class ConsequentEstimator(nn.Module):
     """
     The data structure for the consequent estimator.
@@ -171,6 +172,54 @@ class ConsequentEstimator(nn.Module):
         sigma = torch.exp(self.sigma_head(out).squeeze(dim=-1))
         coverage = torch.sigmoid(self.coverage_head(out).squeeze(dim=-1))
 
+        return mu, sigma, coverage
+
+
+# [AMR-SELOR][2025-12-11] TripleConsequentEstimator: accepts triple embeddings directly (no atom lookup)
+class TripleConsequentEstimator(nn.Module):
+    """AMR-SELOR consequent estimator operating on triple embeddings.
+
+    Reference: ConsequentEstimator (word-atom version). Difference: input is already
+    embedded triples (dynamic set), so we skip atom_embedding lookup.
+    """
+    def __init__(self, num_classes: int = 2, hidden_dim: int = 768):
+        super().__init__()
+        self.num_classes = num_classes
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=8, batch_first=True)
+        self.cp_te = nn.TransformerEncoder(encoder_layer, num_layers=6)
+
+        self.mu_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_classes),
+        )
+
+        self.sigma_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_classes),
+        )
+
+        self.coverage_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 1),
+        )
+
+    def forward(self, triple_embeddings: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """triple_embeddings: [batch, antecedent_len, hidden_dim]"""
+        out = self.cp_te(triple_embeddings)
+        out = torch.mean(out, dim=1)
+
+        mu = F.softmax(self.mu_head(out), dim=-1)
+        sigma = torch.exp(self.sigma_head(out))
+        coverage = torch.sigmoid(self.coverage_head(out).squeeze(dim=-1))
         return mu, sigma, coverage
 
 class AtomSelector(nn.Module):

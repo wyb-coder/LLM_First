@@ -1,5 +1,24 @@
 """Build triple pool, global vocab, and true_matrix from extracted triples.
 
+【溯源说明】
+改造自：build_atom_pool.py（后半段）+ extract_base_embedding.py（嵌入计算逻辑）
+原文件职能：
+  build_atom_pool.py:
+    - 构建全局原子池、计算 true_matrix（原子-样本关系矩阵）
+    - 基于词频过滤低频原子，生成固定维度的原子嵌入表
+  extract_base_embedding.py:
+    - 提取 BERT 基础嵌入（CLS）供后续使用
+    - 计算样本级别的上下文嵌入
+本文件职能：
+  - 基于 stage1 提取的三元组构建全局三元组词表（频率过滤）
+  - 生成 per_sample_indices（每样本的三元组索引列表，top-K 截断）
+  - 构建稀疏 true_matrix [num_triples, n_samples]，用于基线嵌入计算
+核心改造：
+  - 原子池：固定全局词汇 → 动态三元组（每样本 top-K）
+  - true_matrix：密集 numpy → 稀疏 scipy CSR（防止内存爆炸）
+  - 频率过滤：新增 --min_freq 参数过滤罕见三元组
+  - 嵌入计算：基线用 true_matrix @ CLS 均值（可选文本编码器移至待拓展）
+
 Inputs: train/valid/test triples pickles produced by `extract_triples.py`.
 Outputs (under --out_dir):
 - global_triple_vocab.pkl : list[str], filtered by min_freq, ordered by freq

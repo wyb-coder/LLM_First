@@ -3,6 +3,13 @@
 > **项目目标**：将 SELOR 框架改造为 AMR-SELOR，用 AMR 语义三元组替代词汇原子，实现从"词法匹配"到"语义推理"的转变，提升模型的可解释性质量和复述鲁棒性。
 
 > **实施原则**：新增/改版代码集中放在 `selor_amr/` 下按 stage 分层，原有文件保持不变，便于对照回滚。
+>
+> **代码组织规范**：
+>
+> - 新增脚本：`selor_amr/stage{N}/xxx.py`（如 `stage1/extract_triples.py`）
+> - 新增工具类：`selor_amr/utils/xxx.py`（如 `utils/triple.py`）
+> - 需修改的原库函数：在 `selor_utils/` 原位置修改（如 `selor_utils/net.py`）
+> - 输出数据：`result/triples/`、`result/embeddings/` 等
 
 ---
 
@@ -28,13 +35,13 @@
 
 ### 1.1 核心改造目标
 
-| 维度         | 原 SELOR                | AMR-SELOR（首版基线）             |
-| ------------ | ----------------------- | --------------------------------- |
-| **原子定义** | 词汇/统计特征布尔表达式 | AMR 语义三元组                    |
-| **原子示例** | `"amazing" >= 1`        | `(staff, :domain-of, amazing-01)` |
-| **原子来源** | 全局词汇表（静态）      | 每个样本的 AMR 图（动态，top-K）  |
+| 维度         | 原 SELOR                | AMR-SELOR（首版基线）                  |
+| ------------ | ----------------------- | -------------------------------------- |
+| **原子定义** | 词汇/统计特征布尔表达式 | AMR 语义三元组                         |
+| **原子示例** | `"amazing" >= 1`        | `(staff, :domain-of, amazing-01)`      |
+| **原子来源** | 全局词汇表（静态）      | 每个样本的 AMR 图（动态，top-K）       |
 | **前件生成** | GRU 从固定原子池选择    | 先用 GRU+mask 复用，指针网络为可选增强 |
-| **可解释性** | 词法层面                | 语义层面                          |
+| **可解释性** | 词法层面                | 语义层面                               |
 
 ### 1.2 Pipeline 对比
 
@@ -78,12 +85,12 @@ extract_triples.py → build_triple_pool.py → pretrain_ce_triple.py → amr_se
 
 ### 2.2 关键组件变化
 
-| 组件                | 原 SELOR                          | AMR-SELOR                           | 变化说明                         |
-| ------------------- | --------------------------------- | ----------------------------------- | -------------------------------- |
-| 原子池              | 全局固定，基于词频                | 动态，每样本独立，top-K 截断        | **根本性变化**                   |
-| 原子表示            | one-hot → 查表得嵌入              | 三元组文本→编码或 true_matrix@CLS   | **表示方式变化**                 |
-| AtomSelector        | GRU + fixed output dim            | 先复用 GRU+mask，指针网络可选       | **架构可升级，先低风险复用**     |
-| ConsequentEstimator | Transformer + 固定 atom_embedding | Transformer + 动态 triple_embedding | **输入变化，冻结/复用更稳**       |
+| 组件                | 原 SELOR                          | AMR-SELOR                           | 变化说明                     |
+| ------------------- | --------------------------------- | ----------------------------------- | ---------------------------- |
+| 原子池              | 全局固定，基于词频                | 动态，每样本独立，top-K 截断        | **根本性变化**               |
+| 原子表示            | one-hot → 查表得嵌入              | 三元组文本 → 编码或 true_matrix@CLS | **表示方式变化**             |
+| AtomSelector        | GRU + fixed output dim            | 先复用 GRU+mask，指针网络可选       | **架构可升级，先低风险复用** |
+| ConsequentEstimator | Transformer + 固定 atom_embedding | Transformer + 动态 triple_embedding | **输入变化，冻结/复用更稳**  |
 
 ---
 
@@ -91,26 +98,25 @@ extract_triples.py → build_triple_pool.py → pretrain_ce_triple.py → amr_se
 
 ### 3.1 新增文件
 
-| 文件                            | 功能描述                             | 所属阶段 |
-| ------------------------------- | ------------------------------------ | -------- |
-| `spring_parse_all.py`           | 批量解析训练/测试集生成 AMR 图       | 阶段一   |
-| `extract_triples.py`            | 从 AMR 图提取三元组                  | 阶段一   |
-| `selor_utils/triple.py`         | 三元组相关数据结构和工具函数         | 阶段一   |
-| `build_triple_pool.py`          | 构造全局三元组池、true_matrix、top-K（输入可直接用 train_with_amr/test_with_amr） | 阶段二   |
-| `compute_triple_embeddings.py`  | （可选）三元组文本编码器，已移至待拓展 | —        |
-| `sample_triple_combinations.py` | （可选）三元组组合采样，已移至待拓展   | —        |
-| `pretrain_ce_triple.py`         | 预训练三元组后件估计器               | 阶段三   |
-| `amr_selor.py`                  | AMR-SELOR 主训练脚本                 | 阶段四   |
-| `run_amr_selor.py`              | AMR-SELOR 完整 pipeline              | 阶段六   |
+| 文件                                           | 功能描述                             | 所属阶段 | 状态      |
+| ---------------------------------------------- | ------------------------------------ | -------- | --------- |
+| `selor_amr/stage1/extract_triples.py`          | 从 AMR CSV 提取三元组                | 阶段一   | ✅ 完成   |
+| `selor_amr/stage2/build_triple_pool.py`        | 构造全局三元组池、true_matrix、top-K | 阶段二   | ✅ 完成   |
+| `selor_amr/stage2/triple.py`                   | 三元组相关数据结构和工具函数         | 阶段二   | ✅ 完成   |
+| `selor_amr/stage3/pretrain_ce_triple.py`       | 预训练三元组后件估计器               | 阶段三   | ⏳ 待开发 |
+| `selor_amr/stage4/amr_selor.py`                | AMR-SELOR 主训练脚本                 | 阶段四   | ⏳ 待开发 |
+| `selor_amr/stage5/dataset.py`                  | 三元组数据集类                       | 阶段五   | ⏳ 待开发 |
+| `selor_amr/stage6/run_amr_selor.py`            | AMR-SELOR 完整 pipeline              | 阶段六   | ⏳ 待开发 |
+| `selor_amr/utils/compute_triple_embeddings.py` | （可选）三元组文本编码器             | 待拓展   | —         |
 
 ### 3.2 修改文件
 
-| 文件                        | 原功能       | 修改内容                                           | 所属阶段  |
-| --------------------------- | ------------ | -------------------------------------------------- | --------- |
+| 文件                        | 原功能       | 修改内容                                                          | 所属阶段  |
+| --------------------------- | ------------ | ----------------------------------------------------------------- | --------- |
 | `selor_utils/net.py`        | 神经网络模块 | 先复用 GRU+mask，新增 TripleConsequentEstimator；指针网络列为可选 | 阶段三/四 |
-| `selor_utils/dataset.py`    | 数据集处理   | 新增三元组数据集类；输出三元组 mask/列表           | 阶段五    |
-| `selor_utils/train_eval.py` | 训练评估     | 适配三元组解释生成/评估逻辑                       | 阶段五    |
-| `selor_utils/utils.py`      | 工具函数     | 新增三元组相关参数解析                             | 阶段五    |
+| `selor_utils/dataset.py`    | 数据集处理   | 新增三元组数据集类；输出三元组 mask/列表                          | 阶段五    |
+| `selor_utils/train_eval.py` | 训练评估     | 适配三元组解释生成/评估逻辑                                       | 阶段五    |
+| `selor_utils/utils.py`      | 工具函数     | 新增三元组相关参数解析                                            | 阶段五    |
 
 ### 3.3 保留文件（无需修改）
 
@@ -121,9 +127,9 @@ extract_triples.py → build_triple_pool.py → pretrain_ce_triple.py → amr_se
 
 ### 3.4 废弃文件
 
-| 文件                    | 原功能             | 废弃理由                              |
-| ----------------------- | ------------------ | ------------------------------------- |
-| `build_atom_pool.py`    | 基于词频构建原子池 | 被 SPRING 三元组池构建替代             |
+| 文件                    | 原功能             | 废弃理由                                            |
+| ----------------------- | ------------------ | --------------------------------------------------- |
+| `build_atom_pool.py`    | 基于词频构建原子池 | 被 SPRING 三元组池构建替代                          |
 | `sample_antecedents.py` | 采样词汇原子组合   | 如需三元组组合采样，改用 sample_triple_combinations |
 
 ---
@@ -237,7 +243,7 @@ def extract_triples_from_amr(amr_str: str) -> List[Tuple[str, str, str]]:
 **阶段验收**：
 
 - true_matrix 维度与样本数一致，无全零行；三元组数分布、稀疏度统计
-- 抽样三元组与原句语义一致；方向规范（:*-of）生效
+- 抽样三元组与原句语义一致；方向规范（:\*-of）生效
 - top-K 截断后，极端空样本占比可接受（若空则补 dummy）
 
 ---
@@ -336,37 +342,29 @@ class GlobalTripleVocab:
 - 输入：one-hot 原子索引 → 查表得到 `atom_embedding`
 - 输出：mu（类别概率）, sigma（不确定性）, coverage（覆盖率）
 
-**新功能**：
+**新功能（对齐原 SELOR 预训练逻辑）**：
 
-- 预训练 `TripleConsequentEstimator` 网络
-- 输入：三元组嵌入序列（直接输入，非查表）
-- 输出：与原版相同
+- 采样三元组组合（长度 1..antecedent_len），统计经验分布 \(\hat p(y\mid \alpha)\) 与覆盖率
+- 输入：三元组嵌入序列（查表方式），不查表 atom_embedding
+- 损失：MSE 回归经验分布（主），覆盖率可作辅助；评估用 MAE/RMSE/Fidelity/argmax-acc
 
-> 基线可用 true_matrix @ train_embeddings（CLS 均值）得到三元组 embedding；文本编码器作为可选增强，见“待拓展”。
+> 基线：`true_matrix @ train_cls_embeddings` 归一化得到三元组 embedding 表，预先存储；训练时按采样组合查表
+> 可选增强：实时文本编码、组合式 head/rel/tail 编码，放“待拓展”
 
-**核心变化**：
+**核心流程（基线）**：
 
 ```python
-# 原SELOR pretrain数据流：
-x = F.one_hot(atom_indices, n_atom).float()  # [batch, antecedent_len, n_atom]
-emb = torch.matmul(x, atom_embedding)        # 查表
-mu, sigma, coverage = ce_model(emb)
-
-# AMR-SELOR pretrain数据流：
-triple_embeddings = triple_encoder.encode_batch(triples)  # 直接编码
-mu, sigma, coverage = ce_model(triple_embeddings)
+# 1) 采样三元组组合 alpha，过滤 min_coverage
+# 2) 统计经验分布 mu_hat = count(y|alpha)/n, coverage = n/N
+# 3) 查表获取嵌入序列 emb = triple_embedding[alpha]
+# 4) MSE(mu_pred, mu_hat) [+ 0.1*MSE(coverage_pred, coverage)]
 ```
 
-**修改依据**：
+**阶段验收（回归视角）**：
 
-- 三元组是动态的，无法预定义全局嵌入表
-- 必须在前向过程中实时计算三元组嵌入
-
-**阶段验收**：
-
-- 预训练集生成成功，类别覆盖均衡；loss 收敛，无 NaN/Inf
-- mu/σ/coverage 数值分布合理（无极端全 0/全 1）
-- 验证集上规则后件 macro-F1 接近原始 CE 预训练水平
+- 采样数充足（如 1e4），有效覆盖率通过 min_coverage 过滤
+- 训练/验证 mu_MAE、mu_RMSE 收敛；coverage_MAE 合理；argmax_acc 仅作辅参考
+- 产物：`ce_triple_best.pt`、配置文件（hidden_dim/num_classes/antecedent_len/采样配置）
 
 ---
 
@@ -429,7 +427,8 @@ class TripleConsequentEstimator(nn.Module):
 
 ## 7. 阶段四：前件生成器改造
 
-> 实施顺序：先用原 AtomSelector 路径（GRU + filtered_softmax + mask，固定 max_triples）跑通基线；指针网络方案列为可选增强，放入“待拓展”。
+> **基线方案**：复用原 AtomSelector 路径（GRU + filtered_softmax + mask，固定 num_triples = 词表大小），三元组嵌入通过查表获取。
+> **可选增强**：指针网络方案列为可选增强，放入“待拓展”。
 
 ### 7.1 `selor_utils/net.py` 修改 - 前件生成器部分
 
@@ -460,9 +459,11 @@ class AtomSelector(nn.Module):
             ...
 ```
 
-**新组件**：`TriplePointerSelector`
+**可选增强组件**：`TriplePointerSelector`（移至"待拓展"）
 
-**新功能**：
+> ⚠️ **注意**：以下指针网络为增强方案，基线版本复用原 AtomSelector 的 GRU+mask 结构。
+
+**增强功能**（处理动态候选长度）：
 
 ```python
 class TriplePointerSelector(nn.Module):
@@ -550,28 +551,33 @@ class TriplePointerSelector(nn.Module):
 - 整合 `AtomSelector` 和 `ConsequentEstimator`
 - 从固定原子池中选择原子并预测
 
-**新组件**：`AMRAntecedentGenerator`
+**新组件（基线）**：`AMRAntecedentGenerator`
 
-**新功能**：
+**基线方案说明**：
+
+- 复用原 AtomSelector 结构，输出维度 = 全局三元组词表大小 (80,497)
+- 三元组嵌入通过查表获取（预计算的 triple_embedding）
+- 使用 x\_（满足向量）屏蔽不属于当前样本的三元组
 
 ```python
 class AMRAntecedentGenerator(nn.Module):
-    """AMR-SELOR的前件生成器"""
+    """基线版AMR-SELOR前件生成器（复用GRU+mask）"""
     def __init__(self, base, hidden_dim, num_classes, antecedent_len,
-                 triple_encoder, consequent_estimator, n_data):
+                 triple_embedding, consequent_estimator, n_data):
         super().__init__()
 
         # BERT上下文编码器
         _, self.tf_model, _ = get_tf_model(base)
 
-        # 三元组编码器
-        self.triple_encoder = triple_encoder
+        # 预计算的三元组嵌入表 [num_triples, hidden_dim]
+        # 来源：true_matrix @ train_cls_embeddings / count
+        self.register_buffer('triple_embedding', triple_embedding)
+        self.num_triples = triple_embedding.shape[0]
 
-        # 三元组选择器（指针网络）
-        self.triple_selector = TriplePointerSelector(
-            hidden_dim=hidden_dim,
-            antecedent_len=antecedent_len
-        )
+        # 原始 AtomSelector 结构（复用）
+        self.gru = nn.GRU(hidden_dim, hidden_dim)
+        self.gru_head = nn.Linear(hidden_dim, self.num_triples)  # 输出维度=词表大小
+        self.antecedent_len = antecedent_len
 
         # 后件估计器（冻结）
         self.consequent_estimator = consequent_estimator
@@ -582,66 +588,72 @@ class AMRAntecedentGenerator(nn.Module):
         self.n_data = n_data
         self.alpha = nn.Parameter(torch.ones(1))
 
-    def forward(self, input_ids, attention_mask, sample_triples):
+    def filtered_softmax(self, logits, x_, temperature=1.0):
+        """屏蔽不属于当前样本的三元组"""
+        logits = logits.masked_fill(~x_, float('-inf'))
+        if self.training:
+            return F.gumbel_softmax(logits, tau=temperature, hard=True)
+        else:
+            idx = logits.argmax(dim=-1)
+            return F.one_hot(idx, self.num_triples).float()
+
+    def forward(self, input_ids, attention_mask, x_):
         """
         Args:
             input_ids: BERT输入 [batch, seq_len]
             attention_mask: BERT掩码 [batch, seq_len]
-            sample_triples: 每个样本的三元组列表 List[List[Triple]]
+            x_: 满足向量 [batch, num_triples]，表示当前样本包含哪些三元组
         """
+        batch_size = input_ids.shape[0]
+
         # 1. BERT编码句子
         bert_out = self.tf_model(input_ids=input_ids, attention_mask=attention_mask)
         cls_emb = bert_out.last_hidden_state[:, 0, :]  # [batch, hidden]
 
-        # 2. 编码每个样本的候选三元组
-        batch_size = len(sample_triples)
-        max_num_triples = max(len(triples) for triples in sample_triples)
+        # 2. GRU逐步选择三元组（复用原AtomSelector逻辑）
+        selected_probs = []
+        cur_input = cls_emb.unsqueeze(0)  # [1, batch, hidden]
+        cur_hidden = None
 
-        triple_embeddings = []
-        triple_mask = []
-        for triples in sample_triples:
-            emb = self.triple_encoder.encode_batch(triples)  # [num_triples, hidden]
-            # 填充到相同长度
-            pad_len = max_num_triples - len(triples)
-            if pad_len > 0:
-                emb = F.pad(emb, (0, 0, 0, pad_len))
-            triple_embeddings.append(emb)
+        for step in range(self.antecedent_len):
+            if cur_hidden is not None:
+                _, cur_hidden = self.gru(cur_input, cur_hidden)
+            else:
+                _, cur_hidden = self.gru(cur_input)
 
-            mask = torch.ones(max_num_triples, dtype=torch.bool)
-            mask[len(triples):] = False
-            triple_mask.append(mask)
+            logits = self.gru_head(cur_hidden.squeeze(0))  # [batch, num_triples]
+            prob = self.filtered_softmax(logits, x_)       # 屏蔽 + Gumbel-Softmax
+            selected_probs.append(prob)
 
-        triple_embeddings = torch.stack(triple_embeddings)  # [batch, max_triples, hidden]
-        triple_mask = torch.stack(triple_mask)              # [batch, max_triples]
+            # 下一步输入：选中的三元组嵌入
+            selected_emb = torch.matmul(prob, self.triple_embedding)  # [batch, hidden]
+            cur_input = (cls_emb + selected_emb).unsqueeze(0)
 
-        # 3. 选择三元组
-        select_probs = self.triple_selector(cls_emb, triple_embeddings, triple_mask)
-        # [batch, antecedent_len, max_triples]
+        select_probs = torch.stack(selected_probs, dim=1)  # [batch, antecedent_len, num_triples]
 
-        # 4. 获取选中的三元组嵌入
-        selected_embeddings = torch.bmm(
-            select_probs.view(batch_size * self.antecedent_len, 1, -1),
-            triple_embeddings.unsqueeze(1).expand(-1, self.antecedent_len, -1, -1)
-                          .reshape(batch_size * self.antecedent_len, max_num_triples, -1)
-        ).view(batch_size, self.antecedent_len, -1)
+        # 3. 获取选中的三元组嵌入（查表）
+        selected_embeddings = torch.matmul(select_probs, self.triple_embedding)  # [batch, antecedent_len, hidden]
 
-        # 5. 后件估计
+        # 4. 后件估计
         mu, _, coverage = self.consequent_estimator(selected_embeddings)
 
-        # 6. 计算最终预测概率
+        # 5. 计算最终预测概率
         n = coverage * self.n_data
-        smooth = self.alpha / n
+        smooth = self.alpha / (n + 1e-8)
         smooth = smooth.unsqueeze(-1).expand(-1, self.num_classes)
         class_prob = (mu + smooth) / (1 + self.num_classes * smooth)
 
-        return torch.log(class_prob), select_probs
+        return torch.log(class_prob + 1e-8), select_probs
 ```
 
-**修改依据**：
+**与原 SELOR 的关键对应**：
 
-- 整合新的 `TriplePointerSelector` 和 `TripleConsequentEstimator`
-- 处理动态三元组输入
-- 保持与原 SELOR 相同的预测概率计算方式
+| 原 SELOR                      | AMR-SELOR 基线                  | 说明           |
+| ----------------------------- | ------------------------------- | -------------- |
+| `atom_embedding`              | `triple_embedding`              | 预计算的嵌入表 |
+| `x_` (bool)                   | `x_` (bool)                     | 满足向量       |
+| `gru_head(hidden, num_atoms)` | `gru_head(hidden, num_triples)` | 输出维度不同   |
+| `filtered_softmax`            | `filtered_softmax`              | 逻辑相同       |
 
 **阶段验收**：
 
@@ -900,36 +912,100 @@ python run_amr_selor.py --dataset yelp --num_samples 1000 --epochs 2
 
 ### 11.1 技术风险
 
-| 风险                 | 影响                 | 缓解措施                                   |
-| -------------------- | -------------------- | ------------------------------------------ |
-| SPRING 解析错误       | 噪声三元组           | 过滤低置信度/罕见关系；空样本填 dummy      |
-| 三元组过多            | 内存/计算开销        | top-K、max_triples 截断；稀疏 true_matrix  |
-| 动态长度处理          | 批处理困难           | padding + mask；先固定上限复用 GRU+mask    |
-| 后件估计器泛化        | 未见三元组效果差     | 文本编码或组合式编码；数据增强             |
-| 嵌入/索引错位         | 解释与概率不一致     | 固定三元组顺序，true_matrix 与 embedding 一致性检查 |
-| 解析耗时              | 全流程时间过长       | 批量解析、缓存；必要时改用子集/并行        |
+| 风险            | 影响             | 缓解措施                                            |
+| --------------- | ---------------- | --------------------------------------------------- |
+| SPRING 解析错误 | 噪声三元组       | 过滤低置信度/罕见关系；空样本填 dummy               |
+| 三元组过多      | 内存/计算开销    | top-K、max_triples 截断；稀疏 true_matrix           |
+| 动态长度处理    | 批处理困难       | padding + mask；先固定上限复用 GRU+mask             |
+| 后件估计器泛化  | 未见三元组效果差 | 文本编码或组合式编码；数据增强                      |
+| 嵌入/索引错位   | 解释与概率不一致 | 固定三元组顺序，true_matrix 与 embedding 一致性检查 |
+| 解析耗时        | 全流程时间过长   | 批量解析、缓存；必要时改用子集/并行                 |
 
 ### 11.2 实施风险
 
-| 风险              | 影响     | 缓解措施                              |
-| ----------------- | -------- | ------------------------------------- |
-| 开发周期长        | 延期     | 分阶段验收，先跑通 GRU+mask 基线      |
-| 与原 SELOR 差异大 | 调试困难 | 保持模块化、充分日志，逐步替换组件    |
+| 风险              | 影响       | 缓解措施                              |
+| ----------------- | ---------- | ------------------------------------- |
+| 开发周期长        | 延期       | 分阶段验收，先跑通 GRU+mask 基线      |
+| 与原 SELOR 差异大 | 调试困难   | 保持模块化、充分日志，逐步替换组件    |
 | 评测与解释脱节    | 结果不可信 | 统一索引/三元组文本，解释抽样人工验收 |
 
 ---
 
 ## 12. 待拓展（增强项与优先级）
 
-| 优先级 | 增强项                         | 价值                               | 触发条件/时机                  |
-| ------ | ------------------------------ | ---------------------------------- | ------------------------------ |
-| P0+    | 指针网络选择器                 | 原生支持变长候选、注意力可视化     | 基线跑通后，需提升选择质量     |
-| P1     | 三元组文本编码器               | 处理未见三元组，减少 true_matrix 依赖 | 出现大量 OOV 三元组时          |
-| P1     | 复述数据增强 + 稳定性评测       | 提升鲁棒性，解释一致性             | 完成一次端到端训练后           |
-| P1     | 组合式 head/rel/tail 嵌入       | 参数共享，提升泛化                 | 文本编码器成本过高时           |
-| P1     | 三元组组合采样 (sample_triple_combinations.py) | 扩充规则空间，提升 CE 预训练多样性 | 需更丰富前件样本时             |
-| P2     | 联合训练（解除 CE 冻结）        | 潜在提升终端性能                   | 基线稳定后，小心调 lr          |
-| P2     | 图级特征（AMR 子图 pooling）    | 捕捉全局语义                       | 数据量充足、性能瓶颈时         |
+| 优先级  | 增强项                                         | 价值                                      | 触发条件/时机              |
+| ------- | ---------------------------------------------- | ----------------------------------------- | -------------------------- |
+| P0+     | 指针网络选择器                                 | 原生支持变长候选、注意力可视化            | 基线跑通后，需提升选择质量 |
+| **P0+** | **情感区分度三元组过滤**                       | **过滤功能性/无区分度三元组，提升信噪比** | **基线效果不佳时优先尝试** |
+| P1      | 三元组文本编码器                               | 处理未见三元组，减少 true_matrix 依赖     | 出现大量 OOV 三元组时      |
+| P1      | 复述数据增强 + 稳定性评测                      | 提升鲁棒性，解释一致性                    | 完成一次端到端训练后       |
+| P1      | 组合式 head/rel/tail 嵌入                      | 参数共享，提升泛化                        | 文本编码器成本过高时       |
+| P1      | 三元组组合采样 (sample_triple_combinations.py) | 扩充规则空间，提升 CE 预训练多样性        | 需更丰富前件样本时         |
+| P2      | 联合训练（解除 CE 冻结）                       | 潜在提升终端性能                          | 基线稳定后，小心调 lr      |
+| P2      | 图级特征（AMR 子图 pooling）                   | 捕捉全局语义                              | 数据量充足、性能瓶颈时     |
+
+### 12.1 情感区分度三元组过滤（详细方案）
+
+> ⚠️ **问题描述**：AMR 解析出的三元组包含大量"功能性"三元组（如 `(I, :ARG0, say-01)`），这些三元组在所有样本中高频出现，但对情感分类毫无区分度。如果不过滤，模型可能选择这些无意义的三元组作为解释。
+
+**现有过滤（不足）**：
+
+- `KeepRelations` 白名单：仅过滤关系类型
+- `--min_freq=5`：仅过滤罕见三元组
+
+**增强方案**：
+
+| 方法             | 原理                         | 实现位置                    | 优先级 |
+| ---------------- | ---------------------------- | --------------------------- | ------ |
+| **TF-IDF 加权**  | 降低在全语料高频的三元组权重 | `build_triple_pool.py` 新增 | P0+    |
+| **卡方检验**     | 保留与标签显著相关的三元组   | `build_triple_pool.py` 新增 | P0+    |
+| **互信息 (PMI)** | 衡量三元组与标签的共现关系   | `build_triple_pool.py` 新增 | P1     |
+| **黑名单过滤**   | 手动列出常见无意义谓词       | `extract_triples.py` 扩展   | P0     |
+
+**卡方检验实现思路**：
+
+```python
+from scipy.stats import chi2_contingency
+
+def filter_by_chi2(triple_indices, labels, vocab, top_k=5000, p_threshold=0.05):
+    """保留与标签显著相关的三元组"""
+    significant_triples = []
+    for triple_idx in range(len(vocab)):
+        # 构建列联表: [有三元组/无三元组] × [正面/负面]
+        has_triple = [triple_idx in sample for sample in triple_indices]
+        contingency = pd.crosstab(has_triple, labels)
+        chi2, p_value, _, _ = chi2_contingency(contingency)
+        if p_value < p_threshold:
+            significant_triples.append((triple_idx, chi2))
+
+    # 按卡方值排序，保留前 top_k
+    significant_triples.sort(key=lambda x: x[1], reverse=True)
+    return [idx for idx, _ in significant_triples[:top_k]]
+```
+
+**TF-IDF 实现思路**：
+
+```python
+def compute_triple_tfidf(per_sample_indices, num_triples, n_samples):
+    """计算三元组的 TF-IDF 分数"""
+    # TF: 三元组在样本中出现次数 / 样本三元组总数
+    # IDF: log(总样本数 / 包含该三元组的样本数)
+    doc_freq = np.zeros(num_triples)
+    for idxs in per_sample_indices:
+        for idx in set(idxs):  # 去重
+            doc_freq[idx] += 1
+    idf = np.log(n_samples / (doc_freq + 1))
+
+    # 过滤 IDF 过低的三元组（高频无区分度）
+    keep_mask = idf > idf_threshold
+    return keep_mask, idf
+```
+
+**建议实施顺序**：
+
+1. 先跑通基线，观察选中的三元组质量
+2. 如果发现大量无意义三元组被选中，优先加入**黑名单过滤**
+3. 进一步尝试**卡方检验**筛选
 
 ---
 
@@ -937,14 +1013,14 @@ python run_amr_selor.py --dataset yelp --num_samples 1000 --epochs 2
 
 - 论文里的三个核心模块：Base Encoder（BERT/CLS）、Antecedent Generator（AG：选择原子/三元组）、Consequent Estimator（CE：评估规则后件）。
 - 解释生成链路：
-    - 输入句子 → AMR → 三元组集合 `T_x`，并生成满足向量 `x_`（或候选列表）。
-    - AG（首版用 GRU+mask）在候选三元组上选择 antecedent 组合；训练阶段用 Gumbel-Softmax 硬采样确保可微。
-    - CE 对选中三元组序列输出 `mu`（类别概率）、`sigma`（不确定性）、`coverage`（覆盖率）。
-    - 最终预测通过平滑公式组合 `mu` 和 `coverage`，与原 SELOR 保持一致；解释即选中的三元组串接（`AND`）。
+  - 输入句子 → AMR → 三元组集合 `T_x`，并生成满足向量 `x_`（或候选列表）。
+  - AG（首版用 GRU+mask）在候选三元组上选择 antecedent 组合；训练阶段用 Gumbel-Softmax 硬采样确保可微。
+  - CE 对选中三元组序列输出 `mu`（类别概率）、`sigma`（不确定性）、`coverage`（覆盖率）。
+  - 最终预测通过平滑公式组合 `mu` 和 `coverage`，与原 SELOR 保持一致；解释即选中的三元组串接（`AND`）。
 - 人类可读解释建议：
-    - 用 `t.display_str` 直接展示 `(head relation tail)`，必要时映射为中文短语；
-    - 展示覆盖率/置信度辅助审阅；
-    - 抽样对照预测标签，人工打分“好/最佳”作为人类精度。
+  - 用 `t.display_str` 直接展示 `(head relation tail)`，必要时映射为中文短语；
+  - 展示覆盖率/置信度辅助审阅；
+  - 抽样对照预测标签，人工打分“好/最佳”作为人类精度。
 
 ---
 
@@ -952,45 +1028,60 @@ python run_amr_selor.py --dataset yelp --num_samples 1000 --epochs 2
 
 ```
 spring-main/
-└── spring_amr/           # SPRING解析器
+└── spring_amr/                    # SPRING解析器（已完成AMR解析）
 
 SELOR-main/
-├── spring_parse_all.py   # [新] → spring_amr
-├── extract_triples.py    # [新] → penman
-├── compute_triple_embeddings.py  # [新] → transformers
-├── sample_triple_combinations.py # [新]
-├── pretrain_ce_triple.py # [新] → selor_utils/net.py
-├── amr_selor.py          # [新] → selor_utils/*
-├── run_amr_selor.py      # [新]
+├── data/yelp_review_polarity_csv/
+│   ├── train_with_amr.csv         # [输入] 含AMR列的训练集
+│   └── test_with_amr.csv          # [输入] 含AMR列的测试集
 │
-├── selor_utils/
-│   ├── triple.py         # [新] 三元组数据结构
-│   ├── net.py            # [改] 新增TripleConsequentEstimator, TriplePointerSelector
-│   ├── dataset.py        # [改] 新增AMRDataset
-│   ├── train_eval.py     # [改] 新增AMR解释生成
-│   └── utils.py          # [改] 新增参数
+├── selor_amr/                     # ★ AMR-SELOR 新增代码目录 ★
+│   ├── stage1/
+│   │   └── extract_triples.py     # ✅ 从AMR提取三元组
+│   ├── stage2/
+│   │   ├── build_triple_pool.py   # ✅ 构建三元组池、true_matrix
+│   │   └── triple.py              # ✅ 三元组数据结构
+│   ├── stage3/
+│   │   └── pretrain_ce_triple.py  # ⏳ 预训练后件估计器
+│   ├── stage4/
+│   │   └── amr_selor.py           # ⏳ 主训练脚本
+│   ├── stage5/
+│   │   └── dataset.py             # ⏳ 数据集适配
+│   ├── stage6/
+│   │   └── run_amr_selor.py       # ⏳ 完整pipeline
+│   └── utils/
+│       └── (可选增强脚本)
 │
-└── saved_models/
-    ├── amr_graphs/       # AMR解析结果
-    ├── triples/          # 三元组数据
-    └── triple_embeddings/ # 三元组嵌入
+├── selor_utils/                   # 原SELOR工具库（按需修改）
+│   ├── net.py                     # [改] 新增TripleConsequentEstimator
+│   ├── dataset.py                 # [改] 新增AMRDataset
+│   ├── train_eval.py              # [改] 新增AMR解释生成
+│   └── utils.py                   # [改] 新增参数
+│
+└── result/                        # 输出目录
+    └── triples/
+        ├── train_triples.pkl      # ✅ 训练集三元组
+        ├── test_triples.pkl       # ✅ 测试集三元组
+        ├── global_triple_vocab.pkl # ✅ 三元组词表 (80,497个)
+        ├── per_sample_indices.pkl # ✅ 样本索引
+        └── true_matrix.npz        # ✅ 稀疏矩阵 [80497×484511]
 ```
 
 ---
 
 ## 附录 B：开发优先级
 
-| 优先级 | 任务                             | 预计工时 |
-| ------ | -------------------------------- | -------- |
+| 优先级 | 任务                                | 预计工时 |
+| ------ | ----------------------------------- | -------- |
 | P0     | 三元组提取/池构建（含 true_matrix） | 2 天     |
-| P0     | TripleConsequentEstimator 预训练   | 2 天     |
-| P0     | GRU+mask 版前件生成器适配          | 1.5 天   |
-| P1     | 数据集/工具适配                    | 1 天     |
-| P1     | 主流程整合与小规模集成测试         | 2 天     |
-| P1     | 指针网络选择器（可选增强）         | 3 天     |
-| P1     | 三元组文本编码器（可选增强）       | 2 天     |
-| P2     | 复述鲁棒性评测与数据增强           | 1.5 天   |
-| P2     | 性能调优                           | 2 天     |
+| P0     | TripleConsequentEstimator 预训练    | 2 天     |
+| P0     | GRU+mask 版前件生成器适配           | 1.5 天   |
+| P1     | 数据集/工具适配                     | 1 天     |
+| P1     | 主流程整合与小规模集成测试          | 2 天     |
+| P1     | 指针网络选择器（可选增强）          | 3 天     |
+| P1     | 三元组文本编码器（可选增强）        | 2 天     |
+| P2     | 复述鲁棒性评测与数据增强            | 1.5 天   |
+| P2     | 性能调优                            | 2 天     |
 
 ---
 
