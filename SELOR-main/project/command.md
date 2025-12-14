@@ -61,7 +61,7 @@ python selor_amr/stage4/amr_selor.py \
  --antecedent_len 3 \
  --max_triples 50 \
  --batch_size 32 \
- --epochs 10 \
+ --epochs 20 \
  --learning_rate 1e-4 \
  --weight_decay 1e-5 \
  --gpu 0 \

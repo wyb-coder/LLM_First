@@ -232,9 +232,19 @@ class AMRSELOR(nn.Module):
         mu, sigma, coverage = self.ce_model(selected_emb)
         
         # Laplace smoothing (like original SELOR)
+        # Numerical stability fix: clamp coverage and ensure alpha is positive
+        coverage = coverage.clamp(min=1e-4)
         n = coverage * self.n_data  # [B, 1]
-        smooth = self.alpha / (n + 1e-8)  # [B, 1]
+        
+        # Ensure alpha is positive for valid Laplace smoothing logic
+        alpha_val = self.alpha.abs()
+        
+        smooth = alpha_val / (n + 1e-8)  # [B] or [B, 1]
+        if smooth.dim() == 1:
+            smooth = smooth.unsqueeze(-1)  # Ensure [B, 1]
         smooth = smooth.expand(-1, self.num_classes)  # [B, num_classes]
+        
+        # (mu + smooth) / (1 + K * smooth)
         class_prob = (mu + smooth) / (1 + self.num_classes * smooth)
         
         return class_prob, mu, sigma, coverage, select_probs
@@ -246,19 +256,42 @@ def train_epoch(model, loader, triple_emb_table, optimizer, device, n_classes):
     total = 0.0
     correct = 0
     total_loss = 0.0
-    for batch in loader:
+    
+    # Add progress bar
+    pbar = tqdm(loader, desc="Training", unit="batch")
+    
+    for batch in pbar:
         batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
         class_prob, mu, sigma, coverage, select_probs = model(batch, triple_emb_table)
         labels = batch["labels"]
         # Use class_prob (with Laplace smoothing) for loss
         loss = F.nll_loss(torch.log(class_prob + 1e-8), labels)
+        
+        if torch.isnan(loss):
+            print(f"NaN Loss detected! alpha={model.alpha.item()}, coverage_min={coverage.min().item()}")
+            optimizer.zero_grad()
+            continue
+            
         optimizer.zero_grad()
         loss.backward()
+        
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        
         optimizer.step()
-        total_loss += loss.item() * labels.size(0)
+        
+        # Update metrics
+        bs = labels.size(0)
+        loss_val = loss.item()
+        total_loss += loss_val * bs
         pred = torch.argmax(class_prob, dim=-1)
-        correct += (pred == labels).sum().item()
-        total += labels.size(0)
+        acc_val = (pred == labels).sum().item()
+        correct += acc_val
+        total += bs
+        
+        # Update progress bar
+        pbar.set_postfix({"loss": f"{loss_val:.4f}", "acc": f"{acc_val/bs:.4f}"})
+        
     return total_loss / total, correct / total
 
 
@@ -272,16 +305,21 @@ def evaluate(model, loader, triple_emb_table, device, n_classes, return_metrics=
     all_labels = []
     all_probs = []
     
+    # Add progress bar
+    pbar = tqdm(loader, desc="Evaluating", unit="batch")
+    
     with torch.no_grad():
-        for batch in loader:
+        for batch in pbar:
             batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
             class_prob, mu, sigma, coverage, select_probs = model(batch, triple_emb_table)
             labels = batch["labels"]
+            
             loss = F.nll_loss(torch.log(class_prob + 1e-8), labels)
-            total_loss += loss.item() * labels.size(0)
+            bs = labels.size(0)
+            total_loss += loss.item() * bs
             pred = torch.argmax(class_prob, dim=-1)
             correct += (pred == labels).sum().item()
-            total += labels.size(0)
+            total += bs
             
             all_preds.extend(pred.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
