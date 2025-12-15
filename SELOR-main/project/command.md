@@ -60,10 +60,76 @@ python selor_amr/stage4/amr_selor.py \
  --ce_config result/ce_triple/ce_triple_config.pkl \
  --antecedent_len 3 \
  --max_triples 50 \
- --batch_size 32 \
- --epochs 20 \
+ --batch_size 16 \
+ --epochs 2 \
  --learning_rate 1e-4 \
  --weight_decay 1e-5 \
  --gpu 0 \
  --save_dir result/amr_selor \
  --seed 42
+
+#### Stage 5 (Eval)
+
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+python selor_amr/stage5/eval_amr_selor.py \
+ --train_csv data/yelp_review_polarity_csv/train_with_amr.csv \
+ --test_csv data/yelp_review_polarity_csv/test_with_amr.csv \
+ --csv_has_header False \
+ --text_col 1 \
+ --label_col 0 \
+ --label_offset 1 \
+ --triples_dir result/triples \
+ --train_embedding result/embeddings/train_cls.pt \
+ --ce_path result/ce_triple/ce_triple_best.pt \
+ --model_path result/amr_selor/amr_selor_best.pt \
+ --antecedent_len 3 \
+ --max_triples 50 \
+ --batch_size 16 \
+ --gpu 0 \
+ --save_dir result/amr_selor_eval \
+ --seed 42
+
+#### Stage 6 (Pipeline Runner)
+
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+python selor_amr/stage6/run_amr_selor.py \
+ --train_csv data/yelp_review_polarity_csv/train_with_amr.csv \
+ --test_csv data/yelp_review_polarity_csv/test_with_amr.csv \
+ --csv_has_header False \
+ --text_col 1 \
+ --label_col 0 \
+ --label_offset 1 \
+ --triples_dir result/triples \
+ --emb_path result/embeddings/train_cls.pt \
+ --ce_dir result/ce_triple \
+ --amr_selor_dir result/amr_selor \
+ --eval_dir result/amr_selor_eval \
+ --antecedent_len 3 \
+ --max_triples 50 \
+ --batch_size 16 \
+ --epochs 16 \
+ --lr 1e-4 \
+ --weight_decay 1e-5 \
+ --gamma 0.95 \
+ --gpu 0 \
+ --seed 42 \
+ --run_stage4 --run_stage5
+
+#### Stage 6 (Inference-only)
+
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+python selor_amr/stage6/inference_amr_selor.py \
+ --input_csv data/yelp_review_polarity_csv/test_with_amr.csv \
+ --csv_has_header False \
+ --text_col 1 \
+ --triples_dir result/triples \
+ --train_embedding result/embeddings/train_cls.pt \
+ --ce_path result/ce_triple/ce_triple_best.pt \
+ --model_path result/amr_selor/amr_selor_best.pt \
+ --antecedent_len 3 \
+ --max_triples 50 \
+ --batch_size 32 \
+ --gpu 0 \
+ --seed 42 \
+ --start_index 0 \
+ --output_csv result/amr_selor_infer/predictions.csv

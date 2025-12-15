@@ -1,69 +1,0 @@
- log/selor1.0 
-[?2004l[?2004h(selor) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/SELOR-main]$python selor_amr/stage4/amr_selor.py \
-[?2004l[?2004h>  --train_csv data/yelp_review_polarity_csv/train_with_amr.csv \
-[?2004l[?2004h>  --test_csv data/yelp_review_polarity_csv/test_with_amr.csv \
-[?2004l[?2004h>  --csv_has_header False \
-[?2004l[?2004h>  --text_col 1 \
-[?2004l[?2004h>  --label_col 0 \
-[?2004l[?2004h>  --label_offset 1 \
-[?2004l[?2004h>  --triples_dir result/triples \
-[?2004l[?2004h>  --train_embedding result/embeddings/train_cls.pt \
-[?2004l[?2004h>  --ce_path result/ce_triple/ce_triple_best.pt \
-[?2004l[?2004h>  --ce_config result/ce_triple/ce_triple_config.pkl \
-[?2004l[?2004h>  --antecedent_len 3 \
-[?2004l[?2004h>  --max_triples 50 \
-[?2004l[?2004h>  --batch_size 32 \
-[?2004l[?2004h>  --epochs 20 \
-[?2004l[?2004h>  --learning_rate 1e-4 \
-[?2004l[?2004h>  --weight_decay 1e-5 \
-[?2004l[?2004h>  --gpu 0 \
-[?2004l[?2004h>  --save_dir result/amr_selor \
-[?2004l[?2004h>  --seed 42
-[?2004l  Split test set: 17133 test, 17134 valid
-Some weights of the model checkpoint at bert-base-uncased were not used when initializing BertModel: ['cls.predictions.transform.dense.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.seq_relationship.weight', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.bias', 'cls.predictions.bias', 'cls.predictions.transform.dense.bias']
-- This IS expected if you are initializing BertModel from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
-- This IS NOT expected if you are initializing BertModel from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
-
-================================================================================
-Training AMR-SELOR (like original SELOR)
-  Train samples: 450244, Valid: 17134, Test: 17133
-  Epochs: 20, LR: 0.0001, Gamma: 0.95
-================================================================================
-
-Traceback (most recent call last):
-  File "selor_amr/stage4/amr_selor.py", line 469, in <module>
-    main()
-  File "selor_amr/stage4/amr_selor.py", line 419, in main
-    train_loss, train_acc = train_epoch(model, train_loader, triple_emb_table, optimizer, device, num_classes)
-  File "selor_amr/stage4/amr_selor.py", line 251, in train_epoch
-    class_prob, mu, sigma, coverage, select_probs = model(batch, triple_emb_table)
-  File "/home/NCUT/22/sjx/.conda/envs/selor/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
-    return forward_call(*input, **kwargs)
-  File "selor_amr/stage4/amr_selor.py", line 237, in forward
-    smooth = smooth.expand(-1, self.num_classes)  # [B, num_classes]
-RuntimeError: The expanded size of the tensor (2) must match the existing size (32) at non-singleton dimension 1.  Target sizes: [-1, 2].  Tensor sizes: [32]
-[?2004h(selor) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/SELOR-main]$python selor_amr/stage4/amr_selor.py  --train_csv data/yelp_review_polarity_csv/train_with_amr.csv  --test_csv data/yelp_review_polarity_csv/test_with_amr.csv  --csv_has_header False  --text_col 1  --label_col 0  --label_offset 1  --triples_dir result/triples  --train_embedding result/embeddings/train_cls.pt  --ce_path result/ce_triple/ce_triple_best.pt  --ce_config result/ce_triple/ce_triple_config.pkl  --antecedent_len 3  --max_triples 50  --batch_size 32  --epochs 20  --learning_rate 1e-4  --weight_decay 1e-5  --gpu 0  --save_dir result/amr_selor  --seed 42
-[?2004l  Split test set: 17133 test, 17134 valid
-Some weights of the model checkpoint at bert-base-uncased were not used when initializing BertModel: ['cls.seq_relationship.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.dense.weight', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.weight']
-- This IS expected if you are initializing BertModel from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
-- This IS NOT expected if you are initializing BertModel from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
-
-================================================================================
-Training AMR-SELOR (like original SELOR)
-  Train samples: 450244, Valid: 17134, Test: 17133
-  Epochs: 20, LR: 0.0001, Gamma: 0.95
-================================================================================
-
-Traceback (most recent call last):
-  File "selor_amr/stage4/amr_selor.py", line 469, in <module>
-    main()
-  File "selor_amr/stage4/amr_selor.py", line 419, in main
-    train_loss, train_acc = train_epoch(model, train_loader, triple_emb_table, optimizer, device, num_classes)
-  File "selor_amr/stage4/amr_selor.py", line 251, in train_epoch
-    class_prob, mu, sigma, coverage, select_probs = model(batch, triple_emb_table)
-  File "/home/NCUT/22/sjx/.conda/envs/selor/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
-    return forward_call(*input, **kwargs)
-  File "selor_amr/stage4/amr_selor.py", line 237, in forward
-    smooth = smooth.expand(-1, self.num_classes)  # [B, num_classes]
-RuntimeError: The expanded size of the tensor (2) must match the existing size (32) at non-singleton dimension 1.  Target sizes: [-1, 2].  Tensor sizes: [32]
-[?2004h(selor) [sjx-2022@ubuntu /home/NCUT/22/sjx/shared/wyb/SELOR-main]$

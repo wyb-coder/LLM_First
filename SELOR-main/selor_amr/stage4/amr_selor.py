@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument("--ce_config", type=str, default="result/ce_triple/ce_triple_config.pkl")
     parser.add_argument("--antecedent_len", type=int, default=3)
     parser.add_argument("--max_triples", type=int, default=50)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=16)  # Reduced from 32 to 16 to avoid OOM
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-5)
@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument("--save_dir", type=str, default="result/amr_selor")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--valid_split", type=float, default=0.5, help="Split ratio from test set for validation (like original SELOR)")
+    parser.add_argument("--patience", type=int, default=4, help="Early stopping patience (epochs without improvement)")
     return parser.parse_args()
 
 
@@ -149,6 +150,18 @@ def collate_fn(batch):
     }
 
 
+def filter_empty_samples(texts, labels, indices, split_name: str):
+    """Drop samples with no triples to avoid NaNs from empty candidate sets."""
+    keep = [i for i, idxs in enumerate(indices) if len(idxs) > 0]
+    dropped = len(indices) - len(keep)
+    if dropped > 0:
+        print(f"  [{split_name}] dropped {dropped} samples with empty triples")
+    texts_f = [texts[i] for i in keep]
+    labels_f = [labels[i] for i in keep]
+    indices_f = [indices[i] for i in keep]
+    return texts_f, labels_f, indices_f
+
+
 class GRUMaskedSelector(nn.Module):
     """GRU+mask selector adapted to dynamic triple pools (baseline)."""
 
@@ -161,6 +174,17 @@ class GRUMaskedSelector(nn.Module):
     def forward(self, cls_emb: torch.Tensor, triple_emb: torch.Tensor, triple_mask: torch.Tensor, training: bool) -> torch.Tensor:
         # cls_emb: [B, H]; triple_emb: [B, T, H]; triple_mask: [B, T]
         B, T, H = triple_emb.shape
+        
+        # Safety fix: Ensure at least one valid candidate per sample
+        # If a sample has no valid triples, we force the first one to be valid to avoid NaN
+        if (~triple_mask).all(dim=-1).any():
+            triple_mask = triple_mask.clone()
+            triple_mask[(~triple_mask).all(dim=-1), 0] = True
+        
+        # Clone mask for inference to avoid modifying original (for repeated selection prevention)
+        if not training:
+            triple_mask = triple_mask.clone()
+            
         cur_input = cls_emb.unsqueeze(0)
         cur_h = None
         probs = []
@@ -178,6 +202,12 @@ class GRUMaskedSelector(nn.Module):
                 prob = torch.zeros_like(scores)
                 idx = torch.argmax(scores, dim=-1)
                 prob.scatter_(1, idx.unsqueeze(-1), 1.0)
+                # Prevent selecting the same triple again in inference mode
+                # Only mask out if there are still valid candidates remaining
+                remaining = triple_mask.sum(dim=-1)  # [B]
+                can_mask = remaining > 1  # Only mask if more than 1 valid triple left
+                if can_mask.any():
+                    triple_mask[can_mask] = triple_mask[can_mask].scatter(1, idx[can_mask].unsqueeze(-1), False)
             probs.append(prob)
             # selected embedding as next input
             sel = torch.bmm(prob.unsqueeze(1), triple_emb).squeeze(1)  # [B, H]
@@ -232,7 +262,8 @@ class AMRSELOR(nn.Module):
         mu, sigma, coverage = self.ce_model(selected_emb)
         
         # Laplace smoothing (like original SELOR)
-        # Numerical stability fix: clamp coverage and ensure alpha is positive
+        # Numerical stability: replace NaN/Inf, then clamp
+        coverage = torch.nan_to_num(coverage, nan=0.0, posinf=1.0, neginf=0.0)
         coverage = coverage.clamp(min=1e-4)
         n = coverage * self.n_data  # [B, 1]
         
@@ -409,6 +440,13 @@ def main():
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     bert_model = BertModel.from_pretrained("bert-base-uncased").to(device)
 
+    # Drop samples without triples to avoid empty candidate sets
+    train_texts, train_labels, train_indices = filter_empty_samples(train_texts, train_labels, train_indices, "train")
+    test_texts, test_labels, test_indices = filter_empty_samples(test_texts, test_labels, test_indices, "test")
+    if n_valid > 0:
+        valid_texts, valid_labels, valid_indices = filter_empty_samples(valid_texts, valid_labels, valid_indices, "valid")
+        n_valid = len(valid_labels)
+
     train_ds = TripleDataset(train_texts, train_labels, train_indices, tokenizer, max_len=512, max_triples=args.max_triples)
     test_ds = TripleDataset(test_texts, test_labels, test_indices, tokenizer, max_len=512, max_triples=args.max_triples)
     valid_ds = TripleDataset(valid_texts, valid_labels, valid_indices, tokenizer, max_len=512, max_triples=args.max_triples) if n_valid > 0 else None
@@ -445,11 +483,12 @@ def main():
     os.makedirs(args.save_dir, exist_ok=True)
     best_val = float("inf")
     best_path = os.path.join(args.save_dir, "amr_selor_best.pt")
+    no_improve = 0  # Early stopping counter
 
     print(f"\n{'='*80}")
     print(f"Training AMR-SELOR (like original SELOR)")
     print(f"  Train samples: {n_train}, Valid: {n_valid}, Test: {len(test_labels)}")
-    print(f"  Epochs: {args.epochs}, LR: {args.learning_rate}, Gamma: {args.gamma}")
+    print(f"  Epochs: {args.epochs}, LR: {args.learning_rate}, Gamma: {args.gamma}, Patience: {args.patience}")
     print(f"{'='*80}\n")
 
     for epoch in range(1, args.epochs + 1):
@@ -465,10 +504,18 @@ def main():
             if improved:
                 best_val = val_loss
                 torch.save(model.state_dict(), best_path)
+                no_improve = 0
+            else:
+                no_improve += 1
             mark = "*" if improved else ""
             print(f"Epoch {epoch:2d} | Train Loss={train_loss:.4f} Acc={train_acc:.4f} | "
                   f"Val Loss={val_loss:.4f} Acc={val_acc:.4f} F1={val_f1:.4f} "
                   f"ROC={val_roc:.4f} PR={val_pr:.4f} {mark}")
+            
+            # Early stopping check
+            if no_improve >= args.patience:
+                print(f"\n[Early Stopping] No improvement for {args.patience} epochs. Stopping training.")
+                break
         else:
             torch.save(model.state_dict(), best_path)
             print(f"Epoch {epoch:2d} | Train Loss={train_loss:.4f} Acc={train_acc:.4f}")
