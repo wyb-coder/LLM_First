@@ -98,16 +98,18 @@ extract_triples.py → build_triple_pool.py → pretrain_ce_triple.py → amr_se
 
 ### 3.1 新增文件
 
-| 文件                                           | 功能描述                             | 所属阶段 | 状态      |
-| ---------------------------------------------- | ------------------------------------ | -------- | --------- |
-| `selor_amr/stage1/extract_triples.py`          | 从 AMR CSV 提取三元组                | 阶段一   | ✅ 完成   |
-| `selor_amr/stage2/build_triple_pool.py`        | 构造全局三元组池、true_matrix、top-K | 阶段二   | ✅ 完成   |
-| `selor_amr/stage2/triple.py`                   | 三元组相关数据结构和工具函数         | 阶段二   | ✅ 完成   |
-| `selor_amr/stage3/pretrain_ce_triple.py`       | 预训练三元组后件估计器               | 阶段三   | ⏳ 待开发 |
-| `selor_amr/stage4/amr_selor.py`                | AMR-SELOR 主训练脚本                 | 阶段四   | ⏳ 待开发 |
-| `selor_amr/stage5/dataset.py`                  | 三元组数据集类                       | 阶段五   | ⏳ 待开发 |
-| `selor_amr/stage6/run_amr_selor.py`            | AMR-SELOR 完整 pipeline              | 阶段六   | ⏳ 待开发 |
-| `selor_amr/utils/compute_triple_embeddings.py` | （可选）三元组文本编码器             | 待拓展   | —         |
+| 文件                                           | 功能描述                             | 所属阶段 | 状态    |
+| ---------------------------------------------- | ------------------------------------ | -------- | ------- |
+| `selor_amr/stage1/extract_triples.py`          | 从 AMR CSV 提取三元组                | 阶段一   | ✅ 完成 |
+| `selor_amr/stage2/build_triple_pool.py`        | 构造全局三元组池、true_matrix、top-K | 阶段二   | ✅ 完成 |
+| `selor_amr/stage2/triple.py`                   | 三元组相关数据结构和工具函数         | 阶段二   | ✅ 完成 |
+| `selor_amr/stage3/extract_cls_embedding.py`    | 提取 BERT CLS 嵌入                   | 阶段三   | ✅ 完成 |
+| `selor_amr/stage3/pretrain_ce_triple.py`       | 预训练三元组后件估计器               | 阶段三   | ✅ 完成 |
+| `selor_amr/stage4/amr_selor.py`                | AMR-SELOR 主训练脚本                 | 阶段四   | ✅ 完成 |
+| `selor_amr/stage5/eval_amr_selor.py`           | 评估与解释导出                       | 阶段五   | ✅ 完成 |
+| `selor_amr/stage6/run_amr_selor.py`            | AMR-SELOR 完整 pipeline 调度器       | 阶段六   | ✅ 完成 |
+| `selor_amr/stage6/inference_amr_selor.py`      | 纯推理脚本                           | 阶段六   | ✅ 完成 |
+| `selor_amr/utils/compute_triple_embeddings.py` | （可选）三元组文本编码器             | 待拓展   | —       |
 
 ### 3.2 修改文件
 
@@ -1042,49 +1044,63 @@ SELOR-main/
 │   │   ├── build_triple_pool.py   # ✅ 构建三元组池、true_matrix
 │   │   └── triple.py              # ✅ 三元组数据结构
 │   ├── stage3/
-│   │   └── pretrain_ce_triple.py  # ⏳ 预训练后件估计器
+│   │   ├── extract_cls_embedding.py # ✅ 提取BERT CLS嵌入
+│   │   └── pretrain_ce_triple.py  # ✅ 预训练后件估计器
 │   ├── stage4/
-│   │   └── amr_selor.py           # ⏳ 主训练脚本
+│   │   └── amr_selor.py           # ✅ 主训练脚本
 │   ├── stage5/
-│   │   └── dataset.py             # ⏳ 数据集适配
+│   │   └── eval_amr_selor.py      # ✅ 评估与解释导出
 │   ├── stage6/
-│   │   └── run_amr_selor.py       # ⏳ 完整pipeline
+│   │   ├── run_amr_selor.py       # ✅ Pipeline调度器
+│   │   └── inference_amr_selor.py # ✅ 纯推理脚本
 │   └── utils/
 │       └── (可选增强脚本)
 │
 ├── selor_utils/                   # 原SELOR工具库（按需修改）
-│   ├── net.py                     # [改] 新增TripleConsequentEstimator
-│   ├── dataset.py                 # [改] 新增AMRDataset
-│   ├── train_eval.py              # [改] 新增AMR解释生成
-│   └── utils.py                   # [改] 新增参数
+│   ├── net.py                     # [改] 新增TripleConsequentEstimator ✅
+│   ├── dataset.py                 # 未修改（数据集类在stage4内嵌）
+│   ├── train_eval.py              # 未修改（评估逻辑在stage5内嵌）
+│   └── utils.py                   # 未修改（参数解析在各阶段内嵌）
 │
 └── result/                        # 输出目录
-    └── triples/
-        ├── train_triples.pkl      # ✅ 训练集三元组
-        ├── test_triples.pkl       # ✅ 测试集三元组
-        ├── global_triple_vocab.pkl # ✅ 三元组词表 (80,497个)
-        ├── per_sample_indices.pkl # ✅ 样本索引
-        └── true_matrix.npz        # ✅ 稀疏矩阵 [80497×484511]
+    ├── triples/
+    │   ├── train_triples.pkl      # ✅ 训练集三元组
+    │   ├── test_triples.pkl       # ✅ 测试集三元组
+    │   ├── global_triple_vocab.pkl # ✅ 三元组词表 (80,497个)
+    │   ├── per_sample_indices.pkl # ✅ 样本索引
+    │   └── true_matrix.npz        # ✅ 稀疏矩阵 [80497×484511]
+    ├── embeddings/
+    │   └── train_cls.pt           # ✅ 训练集CLS嵌入
+    ├── ce_triple/
+    │   ├── ce_triple_best.pt      # ✅ CE最优模型
+    │   └── ce_triple_config.pkl   # ✅ CE配置
+    ├── amr_selor/
+    │   └── amr_selor_best.pt      # ✅ AMR-SELOR最优模型
+    └── amr_selor_eval/
+        ├── metrics.json           # ✅ 评估指标
+        └── predictions.csv        # ✅ 预测与解释
 ```
 
 ---
 
-## 附录 B：开发优先级
+## 附录 B：开发优先级（已完成基线）
 
-| 优先级 | 任务                                | 预计工时 |
-| ------ | ----------------------------------- | -------- |
-| P0     | 三元组提取/池构建（含 true_matrix） | 2 天     |
-| P0     | TripleConsequentEstimator 预训练    | 2 天     |
-| P0     | GRU+mask 版前件生成器适配           | 1.5 天   |
-| P1     | 数据集/工具适配                     | 1 天     |
-| P1     | 主流程整合与小规模集成测试          | 2 天     |
-| P1     | 指针网络选择器（可选增强）          | 3 天     |
-| P1     | 三元组文本编码器（可选增强）        | 2 天     |
-| P2     | 复述鲁棒性评测与数据增强            | 1.5 天   |
-| P2     | 性能调优                            | 2 天     |
+| 优先级 | 任务                                | 状态 | 实际工时 |
+| ------ | ----------------------------------- | ---- | -------- |
+| P0     | 三元组提取/池构建（含 true_matrix） | ✅   | 2 天     |
+| P0     | TripleConsequentEstimator 预训练    | ✅   | 2 天     |
+| P0     | GRU+mask 版前件生成器适配           | ✅   | 1.5 天   |
+| P0     | 主流程整合与小规模集成测试          | ✅   | 2 天     |
+| P0     | 评估与解释导出                      | ✅   | 0.5 天   |
+| P1     | **情感区分度三元组过滤**            | ⏳   | 待实施   |
+| P1     | **三元组文本编码器**                | ⏳   | 待实施   |
+| P1     | 指针网络选择器（可选增强）          | —    | 待评估   |
+| P2     | 复述鲁棒性评测与数据增强            | —    | 待评估   |
+| P2     | 性能调优                            | —    | 待评估   |
 
 ---
 
-_文档版本：v1.1_  
+_文档版本：v1.2_  
 _创建日期：2025-12-10_  
-_作者：Antigravity AI_
+_基线完成日期：2025-12-15_  
+_作者：研究团队_

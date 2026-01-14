@@ -1,4 +1,11 @@
 ```python
+python bin/yelp_preprocess.py \
+    --input data/yelp_review_polarity_csv/train.csv \
+    --output data/yelp_review_polarity_csv/train_top30k.csv \
+    --per-class 30000
+
+
+
 V1
 preprocess.py
 python bin/preprocess.py --input data/yelp_review_polarity_csv/train.csv --output data/yelp_review_polarity_csv/train_with_index.csv
@@ -15,7 +22,7 @@ python bin/prepare_yelp_to_txt.py \
     --csv data/yelp_review_polarity_csv/train_with_index.csv \
     --out data/yelp_review_polarity_csv/train.sent.txt \
     --split-sentences \
-    --max-sent-per-review 3,10 \
+    --max-sent-per-review 8,6 \
     --review-id-col 0
 
 
@@ -29,15 +36,15 @@ python bin/predict_amrs_from_plaintext.py \
     --device cuda \
     --penman-linearization \
     --use-pointer-tokens \
-    --shard-open "[12, 2, 2, 2, 3, 3, 3, 4, 4, 4, 7, 7, 7]" \
+    --shard-open "[12, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7]" \
     --continue False
 
 python bin/predict_amrs_from_plaintext.py \
     --texts data/yelp_review_polarity_csv/train.sent.txt \
     --maps data/yelp_review_polarity_csv/train.sent.txt.map.tsv \
     --checkpoint checkpoints/AMR2.parsing.pt \
-    --beam-size 1 \
-    --batch-size 1 \
+    --beam-size 5 \
+    --batch-size 64 \
     --device cuda \
     --penman-linearization \
     --use-pointer-tokens \

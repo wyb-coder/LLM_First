@@ -1,3 +1,4 @@
+```
 #### Stage 1
 
 python selor_amr/stage1/extract_triples.py \
@@ -14,6 +15,23 @@ python selor_amr/stage2/build_triple_pool.py \
  --max_triples 50 \
  --min_freq 5 \
  --out_dir result/triples
+
+
+
+python selor_amr/stage2/build_triple_pool.py \
+    --triples_dir result/triples \
+    --labels_csv data/yelp_review_polarity_csv/train_with_amr.csv \
+    --max_triples 50 \
+    --min_freq 3 \
+    --filter_method chi2 \
+    --top_k 30000 \
+    --out_dir result/triples
+
+
+
+
+
+
 
 #### Stage 3
 
@@ -64,7 +82,7 @@ python selor_amr/stage4/amr_selor.py \
  --epochs 2 \
  --learning_rate 1e-4 \
  --weight_decay 1e-5 \
- --gpu 0 \
+ --gpu 7 \
  --save_dir result/amr_selor \
  --seed 42
 
@@ -133,3 +151,5 @@ python selor_amr/stage6/inference_amr_selor.py \
  --seed 42 \
  --start_index 0 \
  --output_csv result/amr_selor_infer/predictions.csv
+```
+
